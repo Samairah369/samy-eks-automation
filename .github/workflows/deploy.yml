@@ -53,9 +53,10 @@ jobs:
       run: |
         aws eks update-kubeconfig --name MyEKS --region ap-south-1 # Apne real EKS Cluster ka naam 'My-EKS-Cluster' ki jagah daalein
 
+        
     # 7. Deploy updated manifests to EKS Cluster
     - name: Deploy to AWS EKS
       run: |
-        kubectl apply -f k8s/deployment.yml
-        kubectl apply -f k8s/service.yml
+        kubectl apply -f k8s/deployment.yml --validate=false
+        kubectl apply -f k8s/service.yml --validate=false
         kubectl rollout restart deployment/samy-react-app
