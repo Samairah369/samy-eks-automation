@@ -48,18 +48,18 @@ jobs:
         docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
-    # 6. Update EKS Kubeconfig with explicit standard authentication
+    # 6. Update EKS Kubeconfig
     - name: Update Kubeconfig for EKS
       run: |
         aws eks update-kubeconfig --name MyEKS --region ap-south-1
 
-    # 7. Deploy updated manifests to EKS Cluster with injected authentication context
+    # 7. Deploy using Token to Bypass local CLI authentication errors
     - name: Deploy to AWS EKS
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        AWS_DEFAULT_REGION: ap-south-1
       run: |
-        kubectl apply -f k8s/deployment.yml
-        kubectl apply -f k8s/service.yml
-        kubectl rollout restart deployment/samy-react-app
+        # AWS CLI se dynamic bearer token generate karna
+        TOKEN=$(aws eks get-token --cluster-name MyEKS | jq -r '.status.token')
+        
+        # Token use karke manifests apply karna
+        kubectl apply -f k8s/deployment.yml --token=$TOKEN
+        kubectl apply -f k8s/service.yml --token=$TOKEN
+        kubectl rollout restart deployment/samy-react-app --token=$TOKEN
