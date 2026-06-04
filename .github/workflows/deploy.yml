@@ -31,7 +31,7 @@ jobs:
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ap-south-1 # Agar aapka actual cluster region alag hai toh change kar lena
+        aws-region: ap-south-1
 
     # 4. Login to Amazon ECR
     - name: Login to Amazon ECR
@@ -42,21 +42,24 @@ jobs:
     - name: Build, Tag, and Push Image to ECR
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        ECR_REPOSITORY: b17-ecr-repo # Apni AWS ECR repository ka exact naam yahan likhein
+        ECR_REPOSITORY: b17-ecr-repo
         IMAGE_TAG: latest
       run: |
         docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
-    # 6. Update EKS Kubeconfig
+    # 6. Update EKS Kubeconfig with explicit standard authentication
     - name: Update Kubeconfig for EKS
       run: |
-        aws eks update-kubeconfig --name MyEKS --region ap-south-1 # Apne real EKS Cluster ka naam 'My-EKS-Cluster' ki jagah daalein
+        aws eks update-kubeconfig --name MyEKS --region ap-south-1
 
-        
-    # 7. Deploy updated manifests to EKS Cluster
+    # 7. Deploy updated manifests to EKS Cluster with injected authentication context
     - name: Deploy to AWS EKS
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_DEFAULT_REGION: ap-south-1
       run: |
-        kubectl apply -f k8s/deployment.yml --validate=false
-        kubectl apply -f k8s/service.yml --validate=false
+        kubectl apply -f k8s/deployment.yml
+        kubectl apply -f k8s/service.yml
         kubectl rollout restart deployment/samy-react-app
