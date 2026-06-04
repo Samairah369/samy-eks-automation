@@ -1,0 +1,61 @@
+name: Samy EKS Automated Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  Build-and-Deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1. Checkout Code
+    - name: Checkout source code
+      uses: actions/checkout@v3
+
+    # 2. Setup Node.js & Run Tests
+    - name: Setup Node.js Environment
+      uses: actions/setup-node@v3
+      with:
+        node-version: 18
+
+    - name: Install Dependencies & Run Tests
+      run: |
+        npm install
+        npm test -- --watchAll=false
+
+    # 3. Configure AWS Credentials Securely
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ap-south-1 # Agar aapka region alag hai toh change kar lena
+
+    # 4. Login to Amazon ECR
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
+
+    # 5. Build, Tag, and Push Docker Image to ECR
+    - name: Build, Tag, and Push Image to ECR
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: b17-ecr-repo # Apni ECR repo ka naam yahan verify kar lein
+        IMAGE_TAG: latest
+      run: |
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+    # 6. Update EKS Kubeconfig
+    - name: Update Kubeconfig for EKS
+      run: |
+        aws eks update-kubeconfig --name My-EKS-Cluster --region ap-south-1 # Apne EKS Cluster ka real naam daalein
+
+    # 7. Deploy updated manifests to EKS Cluster
+    - name: Deploy to AWS EKS
+      run: |
+        kubectl apply -f k8s/deployment.yml
+        kubectl apply -f k8s/service.yml
+        kubectl rollout restart deployment/samy-react-app

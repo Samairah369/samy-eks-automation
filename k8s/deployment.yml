@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: samy-react-app
+  labels:
+    app: samy-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: samy-app
+  template:
+    metadata:
+      labels:
+        app: samy-app
+    spec:
+      containers:
+      - name: react-container
+        # <AWS_ACCOUNT_ID> aur <REGION> ko workflow ke hisaab se pipeline khud update karega
+        image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/b17-ecr-repo:latest
+        ports:
+        - containerPort: 80
+        imagePullPolicy: Always
