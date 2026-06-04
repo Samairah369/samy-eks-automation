@@ -51,7 +51,7 @@ jobs:
     # 6. Update EKS Kubeconfig
     - name: Update Kubeconfig for EKS
       run: |
-        aws eks update-kubeconfig --name My-EKS-Cluster --region ap-south-1 # Apne real EKS Cluster ka naam 'My-EKS-Cluster' ki jagah daalein
+        aws eks update-kubeconfig --name MyEKS --region ap-south-1 # Apne real EKS Cluster ka naam 'My-EKS-Cluster' ki jagah daalein
 
     # 7. Deploy updated manifests to EKS Cluster
     - name: Deploy to AWS EKS
